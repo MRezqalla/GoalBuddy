@@ -1,3 +1,3 @@
 # GoalBuddy
 
-##Purdue Senior Design Project to create an autonomous soccer ball retrieving robot.
+## Purdue Senior Design Project to create an autonomous soccer ball retrieving robot.
