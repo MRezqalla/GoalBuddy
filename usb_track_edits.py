@@ -21,7 +21,7 @@ center_range = 150
 while True:
     _, img = cap.read()
 
-    results = model(img, classes = [0,32], max_det=1, conf=0.4, imgsz=320)
+    results = model(img, classes = [0,32], max_det=1, conf=0.5, imgsz=320)
 
     for r in results:
         annotator = Annotator(img)
