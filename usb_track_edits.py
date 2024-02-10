@@ -1,7 +1,7 @@
 import cv2
 import numpy
 from ultralytics import YOLO
-from ultralytics.utils.plotting import Annotator  # ultralytics.yolo.utils.plotting is deprecated
+from ultralytics.utils.plotting import Annotator  
 
 def print_relative_location(centroid_x):
     if centroid_x < 320 - (center_range/2):
@@ -12,7 +12,7 @@ def print_relative_location(centroid_x):
         print("RIGHT!!!!")
 
 model = YOLO('yolov8s_openvino_model/')
-cap = cv2.VideoCapture(0)
+cap = cv2.VideoCapture('video1.MOV')
 cap.set(3, 640) # width
 cap.set(4, 480) # length
 
