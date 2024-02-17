@@ -11,7 +11,7 @@ def print_relative_location(centroid_x):
     elif centroid_x > 320 + (center_range/2):
         print("RIGHT!!!!")
 
-model = YOLO('yolov8s_openvino_model/')
+model = YOLO('yolov8s_saved_model/')
 cap = cv2.VideoCapture('video1.MOV')
 cap.set(3, 640) # width
 cap.set(4, 480) # length
@@ -21,7 +21,7 @@ center_range = 150
 while True:
     _, img = cap.read()
 
-    results = model(img, classes = [0,32], max_det=1, conf=0.5, imgsz=320)
+    results = model(img, classes = [0,32], max_det=1, conf=0.5)
 
     for r in results:
         annotator = Annotator(img)
