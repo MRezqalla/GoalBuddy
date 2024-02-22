@@ -2,6 +2,7 @@ import cv2
 import numpy
 from ultralytics import YOLO
 from ultralytics.utils.plotting import Annotator  
+import gpiozero as io
 
 def print_relative_location(centroid_x):
     if centroid_x < 320 - (center_range/2):
@@ -11,17 +12,20 @@ def print_relative_location(centroid_x):
     elif centroid_x > 320 + (center_range/2):
         print("RIGHT!!!!")
 
-model = YOLO('../Models/TPU/yolov8s_saved_model/')
+model = YOLO('../Models/openvino/yolov8n_openvino_model/')
 cap = cv2.VideoCapture(0)
 cap.set(3, 640) # width
 cap.set(4, 480) # length
+
+leftM = io.Motor(11,13)
+leftM.forward(1)
 
 center_range = 150 
 
 while True:
     _, img = cap.read()
 
-    results = model(img, classes = [0,32], max_det=1, conf=0.5)
+    results = model(img, classes = [0,32], max_det=1, conf=0.5, imgsz=640)
 
     for r in results:
         annotator = Annotator(img)
