@@ -1,8 +1,33 @@
+from curses import baudrate
 import cv2
 import numpy
 from math import sqrt
 from ultralytics import YOLO
-from ultralytics.utils.plotting import Annotator  
+import serial
+from threading import Lock
+from ultralytics.utils.plotting import Annotator
+
+def send_command(cmd_string):
+    
+    mutex.acquire()
+    try:
+        cmd_string += "\r"
+        conn.write(cmd_string.encode("utf-8"))
+
+        ## Adapted from original
+        c = ''
+        value = ''
+        while c != '\r':
+            c = conn.read(1).decode("utf-8")
+            if (c == ''):
+                print("Error: Serial timeout on command: " + cmd_string)
+                return ''
+            value += c
+
+        value = value.strip('\r')
+        return value
+    finally:
+        mutex.release()
 
 #import gpiozero as io
 def get_dist(b):
@@ -36,16 +61,19 @@ def get_dist(b):
 
 def output_motors(state):
     if (state == 0):
+        send_command(f"m {int(10)} {int(15)}")
         #leftMotor.value = 0.3
         #rightMotor.value = 0.5
         print("LEFT!!!!")
 
     elif (state == 1):
+        send_command(f"m {int(10)} {int(10)}")
         #leftMotor.value = 0.5
         #rightMotor.value = 0.5
         print("MIDDLE!!!!")
 
     elif (state == 2):
+        send_command(f"m {int(15)} {int(10)}")
         #rightMotor.value = 0.3
         #leftMotor.value = 0.5
         print("RIGHT!!!!")
@@ -70,6 +98,13 @@ def get_coeffs(x1, y1, x2, y2):
 
 #leftMotor = io.PWMLED("GPIO12")
 #rightMotor = io.PWMLED("GPIO13")
+
+mutex = Lock()
+serial_port = '/dev/tty/USB0'
+baud_rate = 57600
+print(f"Connecting to port {serial_port} at {baud_rate}.")
+conn = serial.Serial(serial_port, baud_rate, timeout=1.0)
+print(f"Connected to {conn}")
 
 
 model = YOLO('../Models/Standard/yolov8s.pt')
@@ -165,7 +200,8 @@ while True:
        
     if cv2.waitKey(1) & 0xFF == ord(' '):
         break
-
+        
+conn.close()
 cap.release()
 cv2.destroyAllWindows()
 
