@@ -6,6 +6,7 @@ from ultralytics import YOLO
 import serial
 from threading import Lock
 from ultralytics.utils.plotting import Annotator
+#import gpiozero as io
 
 def send_command(cmd_string):
     
@@ -29,32 +30,24 @@ def send_command(cmd_string):
     finally:
         mutex.release()
 
-#import gpiozero as io
+
 def get_dist(b):
     frame_x = 320
     # frame_y = 240
     centroid_x = int((b[0] + b[2]) / 2)
-    centroid_y = int((b[1] + b[3]) / 2)
-    box_height = b[2] - b[0]  # Really it should be box width
-    print(f"box_height: {box_height}\n\n")
+    # centroid_y = int((b[1] + b[3]) / 2)
+    box_width = b[2] - b[0]
+    #print(f"box_height: {box_height}\n\n")
 
     # For calibration
-    # print(f"Height of Box: {box_height:.2f}\n\n")
+    #print(f"Height of Box: {box_height:.2f}\n\n")
 
-    orth_dist = 123984 * (box_height ** (-1.099)) # calibrated
+    orth_dist = 123984 * (box_width ** (-1.099))  # Calibrated
     
     ### Horizontal Calibration ###
-    calibration_line = 100
-    x_from_center = abs(centroid_x - frame_x)
-    dist_from_center = x_from_center
-    print(f"From center (px): {x_from_center:.2f}\n\n")
-    #dist_from_center = some_number * (pixel ** (some_exponent)) # find
-
-    # vanishing_pt = 300
-    # vert_px = abs(vanishing_pt - centroid_y)
-    # px_to_conv = (vanishing_pt - calibration_line) * centroid_x / vert_px
-    
-    #dist_from_center = some_number * (px_to_conv ** (some_exponent))
+    x_from_center = centroid_x - frame_x   # Left is negative 
+    #print(f"From center (px): {x_from_center:.2f}\n\n")
+    dist_from_center = (0.00225 * orth_dist + 0.34894) * x_from_center  # Calibrated
 
     return orth_dist, dist_from_center
 
