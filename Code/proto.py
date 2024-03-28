@@ -152,7 +152,7 @@ while True:
     print("Looking for ball")
     success, img = cap.read()
     prev_state = state 
-    results = model(img, classes = [0], max_det=1, conf=0.3, imgsz=320, stream=1)
+    results = model(img, classes = [32], max_det=1, conf=0.3, imgsz=320, stream=1)
 
     if success:
         for r in results:
