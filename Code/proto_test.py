@@ -7,6 +7,7 @@ from ultralytics import YOLO
 import serial
 from threading import Lock
 from ultralytics.utils.plotting import Annotator
+import time
 
 display = False
 time_in_center = 0
@@ -60,6 +61,7 @@ def output_motors_human(state):
 
 
 def motor_PID(error):
+
     base_speed = 22
     # error = centroid_x - 320 
     Kp_right = -0.03
@@ -70,6 +72,7 @@ def motor_PID(error):
 
     out_right = base_speed + P_value_right
     out_left = base_speed + P_value_left
+
 
     print(out_right, out_left)
 
@@ -129,6 +132,7 @@ state = -1
 prev_state = -1
 
 while True:
+    start_time = time.perf_counter()
     print("Looking for ball")
     print("Ball shot: ")
     print(ball_shot)
@@ -137,7 +141,9 @@ while True:
     success, img = cap.read()
     prev_state = state 
     results = model(img, classes = [0, 32], max_det=1, conf=0.3, imgsz=320, stream=1)
-
+    
+    end_time = time.perf_counter()
+    print(f"time diff: {end_time - start_time} seconds")
     if success:
         for r in results:
             if(ball_shot):
@@ -148,6 +154,8 @@ while True:
                 send_command(f"m {int(5)} {int(-5)}")
             for box in boxes:
                 if ball_held == 0 or ball_held == 1:
+                    
+
                     b = box.xyxy[0]  # get box coordinates in (left, top, right, bottom) format
                     print(b)
                     c = box.cls
@@ -213,6 +221,8 @@ while True:
                                 print("Player found and centerd")
                     elif ball_held:
                         send_command(f"m {int(5)} {int(-5)}")
+
+                    
        
     if (cv2.waitKey(1) & 0xFF == ord(' ')) or ball_shot :
         break
