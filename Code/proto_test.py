@@ -114,20 +114,22 @@ def output_motors(state):
 
 mutex = Lock()
 
-#make sure they not flipped
-serial_port = '/dev/ttyUSB0'
-serial_port_shooter = '/dev/ttyUSB1'
+# #make sure they not flipped
+# serial_port = '/dev/ttyUSB0'
+# serial_port_shooter = '/dev/ttyUSB1'
 
-baud_rate = 57600
-print(f"Connecting to port {serial_port} at {baud_rate}.")
-conn = serial.Serial(serial_port, baud_rate, timeout=1)
-conn_shooter = serial.Serial(serial_port_shooter, baud_rate, timeout=1)
-print(f"Connected to {conn}")
-model = YOLO('../Models/openvino/yolov8s_openvino_model/')
+# baud_rate = 57600
+# print(f"Connecting to port {serial_port} at {baud_rate}.")
+# conn = serial.Serial(serial_port, baud_rate, timeout=1)
+# conn_shooter = serial.Serial(serial_port_shooter, baud_rate, timeout=1)
+# print(f"Connected to {conn}")
+# model = YOLO('../Models/openvino/yolov8s_openvino_model/')
+
+model = YOLO('../Models/TPU/yolov8s_saved_model/yolov8s_full_integer_quant_edgetpu.tflite')
 
 cap = cv2.VideoCapture(0)
-cap.set(3, 640) # width
-cap.set(4, 480) # length
+cap.set(3, 320) # width
+cap.set(4, 320) # length
 
 center_x = 320
 ball_held = 0
