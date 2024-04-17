@@ -14,16 +14,16 @@ time_in_center = 0
 prev_error = 0
 human_state = 0
 
-def send_command(cmd_string):
+def send_command(cmd_string, connection):
     
     mutex.acquire()
     try:
         cmd_string += "\r"
-        conn.write(cmd_string.encode("utf-8"))
+        connection.write(cmd_string.encode("utf-8"))
         c = ''
         value = ''
         while c != '\r':
-            c = conn.read(1).decode("utf-8")
+            c = connection.read(1).decode("utf-8")
             if (c == ''):
                 print("Error: Serial timeout on command: " + cmd_string)
                 return ''
@@ -49,19 +49,19 @@ def get_dist(b):
 
 def output_motors_human(state):
     if (state == 0):
-        send_command(f"m {int(-3)} {int(3)}")
+        send_command(f"m {int(-10)} {int(10)}", conn)
         print("LEFT!!!!")
 
     elif (state == 1):
         print("MIDDLE!!!!")
 
     elif (state == 2):
-        send_command(f"m {int(3)} {int(-3)}")
+        send_command(f"m {int(10)} {int(-10)}", conn)
         print("RIGHT!!!!")
 
 
 def motor_PID(error):
-
+    start_time = time.perf_counter()
     base_speed = 22
     # error = centroid_x - 320 
     Kp_right = -0.03
@@ -73,10 +73,11 @@ def motor_PID(error):
     out_right = base_speed + P_value_right
     out_left = base_speed + P_value_left
 
-
+    end_time = time.perf_counter()
+    print(f"time diff: {end_time - start_time} seconds")
     print(out_right, out_left)
 
-    send_command(f"m {int(out_left)} {int(out_right)}")
+    send_command(f"m {int(out_left)} {int(out_right)}", conn)
 
 def h_motor_PID(error):
     base_speed = 0
@@ -92,7 +93,7 @@ def h_motor_PID(error):
 
     print(out_right, out_left)
 
-    send_command(f"m {int(out_left)} {int(out_right)}")
+    send_command(f"m {int(out_left)} {int(out_right)}", conn)
 
 
 
@@ -100,24 +101,29 @@ def output_motors(state):
 
 
     if (state == 0):
-        send_command(f"m {int(15)} {int(22)}")
+        send_command(f"m {int(40)} {int(75)}", conn)
         print("LEFT!!!!")
 
     elif (state == 1):
-        send_command(f"m {int(25)} {int(25)}")
+        send_command(f"m {int(60)} {int(60)}", conn)
         print("MIDDLE!!!!")
 
     elif (state == 2):
-        send_command(f"m {int(22)} {int(15)}")
+        send_command(f"m {int(75)} {int(40)}", conn)
         print("RIGHT!!!!")
 
 mutex = Lock()
-serial_port = '/dev/ttyACM0'
-baud_rate = 115200
+
+#make sure they not flipped
+serial_port = '/dev/ttyUSB0'
+serial_port_shooter = '/dev/ttyUSB1'
+
+baud_rate = 57600
 print(f"Connecting to port {serial_port} at {baud_rate}.")
 conn = serial.Serial(serial_port, baud_rate, timeout=1)
+conn_shooter = serial.Serial(serial_port_shooter, baud_rate, timeout=1)
 print(f"Connected to {conn}")
-model = YOLO('../Models/TPU/yolov8m_saved_model/yolov8m_full_integer_quant_edgetpu.tflite')
+model = YOLO('../Models/openvino/yolov8s_openvino_model/')
 
 cap = cv2.VideoCapture(0)
 cap.set(3, 640) # width
@@ -132,7 +138,6 @@ state = -1
 prev_state = -1
 
 while True:
-    start_time = time.perf_counter()
     print("Looking for ball")
     print("Ball shot: ")
     print(ball_shot)
@@ -141,9 +146,7 @@ while True:
     success, img = cap.read()
     prev_state = state 
     results = model(img, classes = [0, 32], max_det=1, conf=0.3, imgsz=320, stream=1)
-    
-    end_time = time.perf_counter()
-    print(f"time diff: {end_time - start_time} seconds")
+
     if success:
         for r in results:
             if(ball_shot):
@@ -151,11 +154,9 @@ while True:
             annotator = Annotator(img)
             boxes = r.boxes
             if (len(boxes) == 0 and ball_held == 1):
-                send_command(f"m {int(5)} {int(-5)}")
+                send_command(f"m {int(3)} {int(-3)}", conn)
             for box in boxes:
                 if ball_held == 0 or ball_held == 1:
-                    
-
                     b = box.xyxy[0]  # get box coordinates in (left, top, right, bottom) format
                     print(b)
                     c = box.cls
@@ -186,48 +187,51 @@ while True:
                     if (int(c) == 32 and ball_held == 0 ):
                         print("1") 
                         error = centroid_x - 320
-                        motor_PID(error)
+                        # motor_PID(error)
 
-                        # if (centroid_x < 320 - (center_range/2)):
-                        #     state = 0
-                        # elif (centroid_x > (320 - (center_range/2)) and (centroid_x < 320 + (center_range/2))):
-                        #     state = 1
-                        # elif (centroid_x > 320 + (center_range/2)):
-                        #     state = 2
-
+                        if (centroid_x < 320 - (center_range/2)):
+                            state = 0
+                        elif (centroid_x > (320 - (center_range/2)) and (centroid_x < 320 + (center_range/2))):
+                            state = 1
+                        elif (centroid_x > 320 + (center_range/2)):
+                            state = 2
                         if (orth_dist >= 350):
                             output_motors(state)
                             print("The ortho distance is: ")
                             print((orth_dist))
                         elif (orth_dist < 350):
+                            send_command(f"o {int(-100)} {int(-100)}", conn_shooter)
                             print("Arrived")
                             ball_held = 1
                     elif int(c) == 0 and ball_held == 1:
-                        # if (h_centroid_x < 320 - (center_range/2)):
-                        #     human_state = 0
+                        if (h_centroid_x < 320 - (center_range/2)):
+                            human_state = 0
                         if (h_centroid_x > (320 - (center_range/2)) and (h_centroid_x < 320 + (center_range/2))):
                             human_state = 1
-                        # elif (h_centroid_x > 320 + (center_range/2)):
-                        #     human_state = 2   
-                        # output_motors_human(human_state)
-                        error = h_centroid_x - 320
-                        h_motor_PID(error)
+                        elif (h_centroid_x > 320 + (center_range/2)):
+                            human_state = 2   
+                        output_motors_human(human_state)
+                       
+                       
+                        # error = h_centroid_x - 320
+                        # h_motor_PID(error)
 
                         if human_state == 1:
                             time_in_center = time_in_center + 1
+                            print("Time:")
                             print(time_in_center)
                             if(time_in_center == 100):
                                 ball_shot = 1
+                                send_command(f"o {int(200)} {int(200)}", conn_shooter)
                                 print("Player found and centerd")
                     elif ball_held:
-                        send_command(f"m {int(5)} {int(-5)}")
-
-                    
+                        send_command(f"m {int(3)} {int(-3)}", conn)
        
     if (cv2.waitKey(1) & 0xFF == ord(' ')) or ball_shot :
         break
         
 conn.close()
+conn_shooter.close()
 cap.release()
 cv2.destroyAllWindows()
 
